@@ -1,0 +1,96 @@
+{
+  "configVersion": 1,
+  "timestamp": 1795356330469,
+  "index": "/PROYECTO_JUAN/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/PROYECTO_JUAN/index.html",
+        "/PROYECTO_JUAN/main-WANY3ACM.js",
+        "/PROYECTO_JUAN/manifest.webmanifest",
+        "/PROYECTO_JUAN/polyfills-LVNOU2XZ.js",
+        "/PROYECTO_JUAN/styles-KJFUQYOQ.css"
+      ],
+      "patterns": []
+    },
+    {
+      "name": "assets-estaticos",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/PROYECTO_JUAN/assets/juan_icon.png",
+        "/PROYECTO_JUAN/assets/juan_portada.webp",
+        "/PROYECTO_JUAN/assets/subzonas_magdalena_cauca.csv",
+        "/PROYECTO_JUAN/static/apple-touch-icon.png",
+        "/PROYECTO_JUAN/static/juan_icon_192.png",
+        "/PROYECTO_JUAN/static/juan_icon_512.png",
+        "/PROYECTO_JUAN/static/juan_icon_maskable_512.png",
+        "/PROYECTO_JUAN/static/manifest.webmanifest"
+      ],
+      "patterns": []
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "datos-hidrologicos-frescos",
+      "patterns": [
+        "\\/(?:.+\\/)?assets\\/fews_calamar\\.json[^/]*",
+        "\\/(?:.+\\/)?assets\\/nivel_calamar\\.csv[^/]*",
+        "\\/(?:.+\\/)?assets\\/config_alertas\\.json[^/]*",
+        "\\/(?:.+\\/)?api\\/.*",
+        "https:\\/\\/raw\\.githubusercontent\\.com\\/(?:.+\\/)?PROYECTO_JUAN\\/.*"
+      ],
+      "strategy": "freshness",
+      "maxSize": 30,
+      "maxAge": 3600000,
+      "timeoutMs": 4000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    }
+  ],
+  "hashTable": {
+    "/PROYECTO_JUAN/assets/juan_icon.png": "fa003bc0b8a0c043399eea06604fd3d6501bfae1",
+    "/PROYECTO_JUAN/assets/juan_portada.webp": "a2ec9b29e97c455106c756cc1c6ca1fe4540fcec",
+    "/PROYECTO_JUAN/assets/subzonas_magdalena_cauca.csv": "495ee8f481a5252b8a449f74203311ec650e2cf4",
+    "/PROYECTO_JUAN/index.html": "a51620843690895ff8922bc466bea19cdb9b9c78",
+    "/PROYECTO_JUAN/main-WANY3ACM.js": "4b949a1c86d3c629f4a616e9e3e2553d71960339",
+    "/PROYECTO_JUAN/manifest.webmanifest": "440cd0673ad973130e37e30d29c68d46a093dc62",
+    "/PROYECTO_JUAN/polyfills-LVNOU2XZ.js": "2f9a12d1b36d16ea2c21645c118124acea70f07e",
+    "/PROYECTO_JUAN/static/apple-touch-icon.png": "f8d094cee9f36c374905b0d32e4cbacdcafaa7bb",
+    "/PROYECTO_JUAN/static/juan_icon_192.png": "3ef3be484f5b6bf89ed03393115b2815ea97d257",
+    "/PROYECTO_JUAN/static/juan_icon_512.png": "80c2a9a719ef0af321ffecc348aee08fccf95840",
+    "/PROYECTO_JUAN/static/juan_icon_maskable_512.png": "0254c3e24130457914ab326c8ab3f3c9a6f6a8ab",
+    "/PROYECTO_JUAN/static/manifest.webmanifest": "7bc8241a96598398c8f7da59c9321453f8e9bd32",
+    "/PROYECTO_JUAN/styles-KJFUQYOQ.css": "5eb3c60fff20b7d095a0f393f82d5bdf1066a53d"
+  },
+  "navigationUrls": [
+    {
+      "positive": true,
+      "regex": "^\\/.*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*\\.[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?[^/]*__[^/]*\\/.*$"
+    }
+  ],
+  "navigationRequestStrategy": "performance"
+}

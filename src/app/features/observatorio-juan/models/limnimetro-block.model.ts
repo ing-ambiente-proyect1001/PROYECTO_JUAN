@@ -3,6 +3,7 @@ import type {
   ForecastHour,
   RiverReading,
   ThresholdsInfo,
+  TrendArrow,
   WeatherCurrent,
 } from "../../../../types";
 import type { AmbienteTipo } from "../../../../utils/format";
@@ -40,6 +41,7 @@ export interface LimnimetricReading {
   readonly nivelMetros: number;
   readonly nivelCm: number;
   readonly variacionCm: number;
+  readonly flecha: TrendArrow;
   readonly variacionTexto: string;
   readonly cotaReferenciaMetros: number;
   readonly cotaReferenciaCm: number;

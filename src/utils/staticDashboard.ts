@@ -2,7 +2,9 @@ import type {
   DashboardResponse,
   ForecastHour,
   RawRecord,
+  ResumenLecturaJson,
   ThresholdsInfo,
+  TrendArrow,
   WeatherCurrent,
 } from "../types";
 import { MESES } from "./format";
@@ -22,19 +24,37 @@ const METEO_LATITUD = 10.25271;
 const METEO_LONGITUD = -74.91574;
 const METEO_ZONA_HORARIA = "America/Bogota";
 const HORIZONTE_METEO_HORAS = 24;
-const APP_URL = "https://ing-ambiente-proyect1001.github.io/PROYECTO_JUAN/";
 
-const RAW_CSV_URL =
-  "https://raw.githubusercontent.com/ing-ambiente-proyect1001/PROYECTO_JUAN/main/nivel_calamar.csv";
-const RAW_FEWS_URL =
-  "https://raw.githubusercontent.com/ing-ambiente-proyect1001/PROYECTO_JUAN/main/assets/fews_calamar.json";
+function resolveRepoOwner(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname.toLowerCase();
+    if (host.endsWith(".github.io")) {
+      return host.split(".")[0] || "Bortiz1996";
+    }
+  }
+  return "Bortiz1996";
+}
+
+const REPO_OWNER = resolveRepoOwner();
+const APP_URL = `https://${REPO_OWNER.toLowerCase()}.github.io/PROYECTO_JUAN/`;
+const RAW_CSV_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/PROYECTO_JUAN/main/nivel_calamar.csv`;
+const RAW_FEWS_URL = `https://raw.githubusercontent.com/${REPO_OWNER}/PROYECTO_JUAN/main/assets/fews_calamar.json`;
 const BUNDLED_CSV_PATH = "assets/nivel_calamar.csv";
 const BUNDLED_FEWS_PATH = "assets/fews_calamar.json";
+const BUNDLED_CONFIG_PATH = "assets/config_alertas.json";
 const SUBZONAS_CSV_PATH = "assets/subzonas_magdalena_cauca.csv";
 
-const UMBRAL_AMARILLA_CM: number | null = null;
-const UMBRAL_NARANJA_CM: number | null = null;
-const UMBRAL_ROJA_CM: number | null = 985;
+interface ConfigAlertasJson {
+  notificaciones?: {
+    tolerancia_sin_cambio_cm?: number;
+  };
+  cotas?: {
+    amarilla?: { valor_cm?: number | null; fuente?: string | null };
+    naranja?: { valor_cm?: number | null; fuente?: string | null };
+    roja?: { valor_cm?: number | null; fuente?: string | null };
+  };
+  muralla_referencia?: { valor_cm?: number | null };
+}
 
 interface ParsedTimestamp {
   iso: string;
@@ -317,6 +337,7 @@ async function loadHistoricalRows(refresh: boolean): Promise<InternalRow[]> {
 interface FewsJsonPayload {
   updatedAt?: string;
   station?: string;
+  resumenLectura?: ResumenLecturaJson | null;
   records?: RawRecord[];
 }
 
@@ -411,8 +432,19 @@ async function fetchLiveFewsCsv(timeoutMs: number): Promise<InternalRow[]> {
   return Promise.any(candidates.map((u) => tryOne(u)));
 }
 
+async function loadAlertConfig(): Promise<ConfigAlertasJson | null> {
+  try {
+    const response = await fetch(BUNDLED_CONFIG_PATH, { cache: "no-store" });
+    if (!response.ok) return null;
+    return (await response.json()) as ConfigAlertasJson;
+  } catch {
+    return null;
+  }
+}
+
 async function loadFewsRows(refresh: boolean): Promise<{
   rows: InternalRow[] | null;
+  resumenLectura: ResumenLecturaJson | null;
   error: string | null;
 }> {
   const fetchJson = async (
@@ -443,17 +475,22 @@ async function loadFewsRows(refresh: boolean): Promise<{
     : BUNDLED_FEWS_PATH;
 
   const [localRes, remoteRes, liveRes] = await Promise.allSettled([
-    fetchJson(localUrl, 6000).then(parseFewsJson),
-    fetchJson(remoteUrl, 6000).then(parseFewsJson),
+    fetchJson(localUrl, 6000),
+    fetchJson(remoteUrl, 6000),
     fetchLiveFewsCsv(7000),
   ]);
 
   const orderedSources: InternalRow[][] = [];
-  if (localRes.status === "fulfilled" && localRes.value.length > 0) {
-    orderedSources.push(localRes.value);
+  let resumenLectura: ResumenLecturaJson | null = null;
+  if (localRes.status === "fulfilled") {
+    const parsed = parseFewsJson(localRes.value);
+    if (parsed.length > 0) orderedSources.push(parsed);
+    if (localRes.value.resumenLectura) resumenLectura = localRes.value.resumenLectura;
   }
-  if (remoteRes.status === "fulfilled" && remoteRes.value.length > 0) {
-    orderedSources.push(remoteRes.value);
+  if (remoteRes.status === "fulfilled") {
+    const parsed = parseFewsJson(remoteRes.value);
+    if (parsed.length > 0) orderedSources.push(parsed);
+    if (remoteRes.value.resumenLectura) resumenLectura = remoteRes.value.resumenLectura;
   }
   if (liveRes.status === "fulfilled" && liveRes.value.length > 0) {
     orderedSources.push(liveRes.value);
@@ -461,11 +498,12 @@ async function loadFewsRows(refresh: boolean): Promise<{
 
   const merged = mergeFewsSources(orderedSources);
   if (merged.length > 0) {
-    return { rows: merged, error: null };
+    return { rows: merged, resumenLectura, error: null };
   }
 
   return {
     rows: null,
+    resumenLectura,
     error:
       "No se pudieron obtener las lecturas recientes de FEWS IDEAM; se muestra el último histórico guardado.",
   };
@@ -715,23 +753,36 @@ async function loadBasinForecast(
   }
 }
 
-function calculateThresholds(): ThresholdsInfo {
-  const oficiales: Record<"amarilla" | "naranja" | "roja", number | null> = {
-    amarilla: UMBRAL_AMARILLA_CM,
-    naranja: UMBRAL_NARANJA_CM,
-    roja: UMBRAL_ROJA_CM,
-  };
+function calculateThresholds(cfg: ConfigAlertasJson | null): ThresholdsInfo {
+  const amar = cfg?.cotas?.amarilla?.valor_cm ?? null;
+  const nara = cfg?.cotas?.naranja?.valor_cm ?? null;
+  const roja = cfg?.cotas?.roja?.valor_cm ?? NIVEL_REFERENCIA_CM;
   const valores = {
-    amarilla: oficiales.amarilla !== null ? Number(oficiales.amarilla) : null,
-    naranja: oficiales.naranja !== null ? Number(oficiales.naranja) : null,
-    roja: oficiales.roja !== null ? Number(oficiales.roja) : null,
+    amarilla: amar !== null ? Number(amar) : null,
+    naranja: nara !== null ? Number(nara) : null,
+    roja: roja !== null ? Number(roja) : null,
   };
   const origen = {
-    amarilla: oficiales.amarilla !== null ? "oficial" : "sin definir",
-    naranja: oficiales.naranja !== null ? "oficial" : "sin definir",
-    roja: oficiales.roja !== null ? "cota crítica (9,85 m)" : "sin definir",
+    amarilla:
+      valores.amarilla !== null
+        ? cfg?.cotas?.amarilla?.fuente || "oficial"
+        : "sin definir",
+    naranja:
+      valores.naranja !== null
+        ? cfg?.cotas?.naranja?.fuente || "oficial"
+        : "sin definir",
+    roja:
+      valores.roja !== null
+        ? cfg?.cotas?.roja?.fuente || `cota crítica (${(valores.roja / 100).toFixed(2).replace(".", ",")} m)`
+        : "sin definir",
   };
   return { valores, origen };
+}
+
+function computeArrow(deltaCm: number, tolerancia: number): TrendArrow {
+  if (deltaCm > tolerancia) return "▲";
+  if (deltaCm < -tolerancia) return "▼";
+  return "▬";
 }
 
 function evaluateAlertState(
@@ -833,11 +884,12 @@ function estimateTrend(rows: InternalRow[]): {
 export async function buildStaticDashboard(
   forceRefresh = false
 ): Promise<DashboardResponse> {
-  const [histRows, fewsRes, subzonas, weatherRes] = await Promise.all([
+  const [histRows, fewsRes, subzonas, weatherRes, alertConfig] = await Promise.all([
     loadHistoricalRows(forceRefresh),
     loadFewsRows(forceRefresh),
     loadSubzonas(),
     loadWeather(forceRefresh),
+    loadAlertConfig(),
   ]);
 
   const combined = combineData(histRows, fewsRes.rows);
@@ -849,7 +901,19 @@ export async function buildStaticDashboard(
   const ultimo = combined[combined.length - 1];
   const previo = combined[combined.length - 2];
   const nivelCm = ultimo.nivelCm;
-  const deltaCm = nivelCm - previo.nivelCm;
+  const tolerancia = alertConfig?.notificaciones?.tolerancia_sin_cambio_cm ?? 0.05;
+  const resumenMatch =
+    fewsRes.resumenLectura &&
+    fewsRes.resumenLectura.fechaHora === ultimo.fecha.iso
+      ? fewsRes.resumenLectura
+      : null;
+
+  const deltaCm = resumenMatch
+    ? resumenMatch.deltaCm
+    : Math.round((nivelCm - previo.nivelCm) * 10) / 10;
+  const flecha: TrendArrow = resumenMatch
+    ? resumenMatch.flecha
+    : computeArrow(deltaCm, tolerancia);
 
   const ultimoDayMs = Date.UTC(
     ultimo.fecha.year,
@@ -861,10 +925,11 @@ export async function buildStaticDashboard(
     diasDiff === 1
       ? "el día anterior"
       : `el ${formatFechaEs(previo.fecha, false)}`;
-  const cambioTexto =
-    deltaCm === 0
-      ? "Sin variación"
-      : `${deltaCm > 0 ? "Subió" : "Bajó"} ${Math.abs(deltaCm).toFixed(1)} cm ${refTxt}`;
+  const cambioTexto = resumenMatch
+    ? resumenMatch.cambioTexto
+    : flecha === "▬"
+      ? "Sin cambio"
+      : `${flecha === "▲" ? "Subió" : "Bajó"} ${Math.abs(deltaCm).toFixed(1)} cm ${refTxt}`;
 
   const bogotaNow = getBogotaNow();
   const edadDias = Math.floor(
@@ -879,7 +944,10 @@ export async function buildStaticDashboard(
   }
 
   const tsUlt = ultimo.ultimaLectura ?? ultimo.fecha;
-  const thresholds = calculateThresholds();
+  const thresholds = calculateThresholds(alertConfig);
+  const nivelReferenciaCm = thresholds.valores.roja ?? NIVEL_REFERENCIA_CM;
+  const nivelMurallaCm =
+    alertConfig?.muralla_referencia?.valor_cm ?? NIVEL_MURALLA_CM;
   const alertState = evaluateAlertState(nivelCm, thresholds);
   const trend = estimateTrend(combined);
 
@@ -924,6 +992,7 @@ export async function buildStaticDashboard(
       tsUlt: tsUlt.iso,
       tsUltHasTime: tsUlt.hasTime || ultimo.ultimaLectura !== null,
       deltaCm,
+      flecha,
       cambioTexto,
       edadDias,
       fuente: ultimo.fuente === 1 ? "FEWS" : "Histórico IDEAM",
@@ -945,8 +1014,8 @@ export async function buildStaticDashboard(
       estacionLatitud: ESTACION_LATITUD,
       estacionLongitud: ESTACION_LONGITUD,
       estacionAltitudMsnm: ESTACION_ALTITUD_MSNM,
-      nivelReferenciaCm: NIVEL_REFERENCIA_CM,
-      nivelMurallaCm: NIVEL_MURALLA_CM,
+      nivelReferenciaCm,
+      nivelMurallaCm,
       diasMaxSinDatos: DIAS_MAX_SIN_DATOS,
       fewsVisorUrl: FEWS_VISOR_URL,
       appUrl: APP_URL,

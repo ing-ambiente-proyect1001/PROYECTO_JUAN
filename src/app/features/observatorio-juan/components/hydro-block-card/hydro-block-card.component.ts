@@ -93,26 +93,37 @@ const RANGE_DAYS: Record<HistoricalRangeOption, number> = {
                 <span class="block-metric-unit">cm</span>
               </span>
 
-              @if (b.lectura.variacionCm > 0) {
+              @if (b.lectura.flecha === "▲") {
                 <span
                   class="reading-trend-arrow reading-trend-up"
                   role="img"
-                  aria-label="El nivel del río subió"
-                  title="El nivel del río subió"
+                  aria-label="▲ El nivel del río subió"
+                  title="▲ El nivel del río subió"
                 >
                   <svg viewBox="0 0 20 28" fill="currentColor" aria-hidden="true">
                     <path d="M10 2L18 11.5H12.2V26H7.8V11.5H2L10 2Z" />
                   </svg>
                 </span>
-              } @else if (b.lectura.variacionCm < 0) {
+              } @else if (b.lectura.flecha === "▼") {
                 <span
                   class="reading-trend-arrow reading-trend-down"
                   role="img"
-                  aria-label="El nivel del río bajó"
-                  title="El nivel del río bajó"
+                  aria-label="▼ El nivel del río bajó"
+                  title="▼ El nivel del río bajó"
                 >
                   <svg viewBox="0 0 20 28" fill="currentColor" aria-hidden="true">
                     <path d="M10 26L18 16.5H12.2V2H7.8V16.5H2L10 26Z" />
+                  </svg>
+                </span>
+              } @else {
+                <span
+                  class="reading-trend-arrow reading-trend-steady"
+                  role="img"
+                  aria-label="▬ Sin cambio respecto a la lectura anterior"
+                  title="▬ Sin cambio respecto a la lectura anterior"
+                >
+                  <svg viewBox="0 0 20 28" fill="currentColor" aria-hidden="true">
+                    <rect x="2" y="12" width="16" height="4" rx="1.5" />
                   </svg>
                 </span>
               }
@@ -125,7 +136,7 @@ const RANGE_DAYS: Record<HistoricalRangeOption, number> = {
 
           <div class="block-metric-context">
             <div class="block-variation-row">
-              @if (b.lectura.variacionCm > 0) {
+              @if (b.lectura.flecha === "▲") {
                 <svg
                   class="variation-delta reading-trend-up"
                   viewBox="0 0 10 10"
@@ -134,7 +145,7 @@ const RANGE_DAYS: Record<HistoricalRangeOption, number> = {
                 >
                   <polygon points="5,1.5 9.5,8.5 0.5,8.5" />
                 </svg>
-              } @else if (b.lectura.variacionCm < 0) {
+              } @else if (b.lectura.flecha === "▼") {
                 <svg
                   class="variation-delta reading-trend-down"
                   viewBox="0 0 10 10"
@@ -142,6 +153,15 @@ const RANGE_DAYS: Record<HistoricalRangeOption, number> = {
                   aria-hidden="true"
                 >
                   <polygon points="5,8.5 9.5,1.5 0.5,1.5" />
+                </svg>
+              } @else {
+                <svg
+                  class="variation-delta reading-trend-steady"
+                  viewBox="0 0 10 10"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <rect x="1" y="4" width="8" height="2" rx="1" />
                 </svg>
               }
               <span class="tabular-nums">{{ b.lectura.variacionTexto }}</span>

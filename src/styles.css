@@ -538,6 +538,10 @@ a:focus-visible {
   color: var(--obs-down);
 }
 
+.reading-trend-steady {
+  color: var(--obs-ink-muted);
+}
+
 .block-metric-context {
   display: flex;
   flex-direction: column;
@@ -1368,4 +1372,90 @@ a:focus-visible {
     margin-left: 0;
     margin-right: 0;
   }
+
+  .obs-notif-card {
+    margin-top: 16px;
+    border: 1px solid var(--obs-border);
+    border-radius: 14px;
+  }
 }
+
+/* ── Tarjeta de avisos Web Push (mobile-first, sin tapar el río) ── */
+.obs-notif-card {
+  margin: 10px 0 0;
+  padding: 1.05rem 1.25rem;
+  background: var(--obs-surface);
+  border-top: 1px solid var(--obs-border);
+  border-bottom: 1px solid var(--obs-border);
+}
+
+.obs-notif-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.obs-notif-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #edf5f7;
+  color: var(--obs-accent-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.obs-notif-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.obs-notif-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.obs-notif-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--obs-ink);
+}
+
+.obs-notif-text {
+  margin: 0.25rem 0 0;
+  font-size: 0.86rem;
+  line-height: 1.48;
+  color: var(--obs-ink-muted);
+}
+
+.obs-notif-feedback {
+  margin: 0.7rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: #eef6f0;
+  color: var(--obs-up);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.obs-notif-error {
+  margin: 0.7rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: #fdf0ef;
+  color: var(--obs-down);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.obs-notif-actions {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+

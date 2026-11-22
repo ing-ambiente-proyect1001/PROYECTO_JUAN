@@ -1,0 +1,43 @@
+{
+  "estacion": {
+    "codigo_ideam": "29037020",
+    "codigo_fews": "0029037020",
+    "nombre": "Calamar",
+    "municipio": "Calamar",
+    "departamento": "Bolívar",
+    "zona_horaria": "America/Bogota"
+  },
+  "notificaciones": {
+    "variacion_significativa_lectura_cm": 10,
+    "variacion_significativa_24h_cm": 20,
+    "horas_sin_datos_aviso": 24,
+    "tolerancia_sin_cambio_cm": 0.05
+  },
+  "cotas": {
+    "amarilla": {
+      "valor_cm": null,
+      "estado": "no_configurada",
+      "fuente": null,
+      "fecha": null,
+      "nota": "Sin cota amarilla oficial configurada; no se evalúa ni se muestra valor inventado."
+    },
+    "naranja": {
+      "valor_cm": null,
+      "estado": "no_configurada",
+      "fuente": null,
+      "fecha": null,
+      "nota": "Sin cota naranja oficial configurada; no se evalúa ni se muestra valor inventado."
+    },
+    "roja": {
+      "valor_cm": 985,
+      "estado": "configurada",
+      "fuente": "Cota crítica configurada en el observatorio JUAN para la estación IDEAM Calamar [29037020]",
+      "fecha": "2026-04-01"
+    }
+  },
+  "muralla_referencia": {
+    "valor_cm": 1000,
+    "fuente": "Referencia de coronación de muralla configurada en el tablero inicial JUAN",
+    "fecha": "2026-04-01"
+  }
+}

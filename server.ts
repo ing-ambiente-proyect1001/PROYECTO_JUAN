@@ -6,7 +6,9 @@ import type {
   DashboardResponse,
   ForecastHour,
   RawRecord,
+  ResumenLecturaJson,
   ThresholdsInfo,
+  TrendArrow,
   WeatherCurrent,
 } from "./src/types.ts";
 
@@ -37,6 +39,42 @@ const METEO_LONGITUD = -74.91574;
 const METEO_ZONA_HORARIA = "America/Bogota";
 const HORIZONTE_METEO_HORAS = 24;
 const APP_URL = "https://ing-ambiente-proyect1001.github.io/PROYECTO_JUAN/";
+
+const CONFIG_ALERTAS_PATH = path.join(ROOT_DIR, "config_alertas.json");
+
+interface AlertConfigJson {
+  notificaciones?: { tolerancia_sin_cambio_cm?: number };
+  cotas?: {
+    amarilla?: { valor_cm?: number | null; fuente?: string | null };
+    naranja?: { valor_cm?: number | null; fuente?: string | null };
+    roja?: { valor_cm?: number | null; fuente?: string | null };
+  };
+  muralla_referencia?: { valor_cm?: number | null };
+}
+
+function loadAlertConfigFile(): AlertConfigJson | null {
+  try {
+    if (!fs.existsSync(CONFIG_ALERTAS_PATH)) return null;
+    return JSON.parse(
+      fs.readFileSync(CONFIG_ALERTAS_PATH, "utf-8")
+    ) as AlertConfigJson;
+  } catch {
+    return null;
+  }
+}
+
+function loadBundledResumenLectura(): ResumenLecturaJson | null {
+  try {
+    const jsonPath = path.join(ROOT_DIR, "assets", "fews_calamar.json");
+    if (!fs.existsSync(jsonPath)) return null;
+    const raw = JSON.parse(fs.readFileSync(jsonPath, "utf-8")) as {
+      resumenLectura?: ResumenLecturaJson | null;
+    };
+    return raw?.resumenLectura ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const UMBRAL_AMARILLA_CM: number | null = null;
 const UMBRAL_NARANJA_CM: number | null = null;
@@ -689,21 +727,28 @@ function combineData(
   return Array.from(map.values()).sort((a, b) => a.fecha.ms - b.fecha.ms);
 }
 
-function calculateThresholds(): ThresholdsInfo {
-  const oficiales: Record<"amarilla" | "naranja" | "roja", number | null> = {
-    amarilla: UMBRAL_AMARILLA_CM,
-    naranja: UMBRAL_NARANJA_CM,
-    roja: UMBRAL_ROJA_CM,
-  };
+function calculateThresholds(cfg: AlertConfigJson | null): ThresholdsInfo {
+  const amar = cfg?.cotas?.amarilla?.valor_cm ?? UMBRAL_AMARILLA_CM;
+  const nara = cfg?.cotas?.naranja?.valor_cm ?? UMBRAL_NARANJA_CM;
+  const roja = cfg?.cotas?.roja?.valor_cm ?? UMBRAL_ROJA_CM;
   const valores = {
-    amarilla: oficiales.amarilla !== null ? Number(oficiales.amarilla) : null,
-    naranja: oficiales.naranja !== null ? Number(oficiales.naranja) : null,
-    roja: oficiales.roja !== null ? Number(oficiales.roja) : null,
+    amarilla: amar !== null ? Number(amar) : null,
+    naranja: nara !== null ? Number(nara) : null,
+    roja: roja !== null ? Number(roja) : null,
   };
   const origen = {
-    amarilla: oficiales.amarilla !== null ? "oficial" : "sin definir",
-    naranja: oficiales.naranja !== null ? "oficial" : "sin definir",
-    roja: oficiales.roja !== null ? "cota crítica (9,85 m)" : "sin definir",
+    amarilla:
+      valores.amarilla !== null
+        ? cfg?.cotas?.amarilla?.fuente || "oficial"
+        : "sin definir",
+    naranja:
+      valores.naranja !== null
+        ? cfg?.cotas?.naranja?.fuente || "oficial"
+        : "sin definir",
+    roja:
+      valores.roja !== null
+        ? cfg?.cotas?.roja?.fuente || "cota crítica (9,85 m)"
+        : "sin definir",
   };
   return { valores, origen };
 }
@@ -833,10 +878,26 @@ async function startServer() {
         return;
       }
 
+      const alertConfig = loadAlertConfigFile();
+      const tolerancia = alertConfig?.notificaciones?.tolerancia_sin_cambio_cm ?? 0.05;
+      const bundledResumen = loadBundledResumenLectura();
       const ultimo = combined[combined.length - 1];
       const previo = combined[combined.length - 2];
       const nivelCm = ultimo.nivelCm;
-      const deltaCm = nivelCm - previo.nivelCm;
+      const resumenMatch =
+        bundledResumen && bundledResumen.fechaHora === ultimo.fecha.iso
+          ? bundledResumen
+          : null;
+      const deltaCm = resumenMatch
+        ? resumenMatch.deltaCm
+        : Math.round((nivelCm - previo.nivelCm) * 10) / 10;
+      const flecha: TrendArrow = resumenMatch
+        ? resumenMatch.flecha
+        : deltaCm > tolerancia
+          ? "▲"
+          : deltaCm < -tolerancia
+            ? "▼"
+            : "▬";
 
       const ultimoDayMs = Date.UTC(
         ultimo.fecha.year,
@@ -853,10 +914,11 @@ async function startServer() {
         diasDiff === 1
           ? "el día anterior"
           : `el ${formatFechaEs(previo.fecha, false)}`;
-      const cambioTexto =
-        deltaCm === 0
-          ? "Sin variación"
-          : `${deltaCm > 0 ? "Subió" : "Bajó"} ${Math.abs(deltaCm).toFixed(1)} cm ${refTxt}`;
+      const cambioTexto = resumenMatch
+        ? resumenMatch.cambioTexto
+        : flecha === "▬"
+          ? "Sin cambio"
+          : `${flecha === "▲" ? "Subió" : "Bajó"} ${Math.abs(deltaCm).toFixed(1)} cm ${refTxt}`;
 
       const bogotaNow = getBogotaNow();
       const edadDias = Math.floor(
@@ -871,7 +933,10 @@ async function startServer() {
       }
 
       const tsUlt = ultimo.ultimaLectura ?? ultimo.fecha;
-      const thresholds = calculateThresholds();
+      const thresholds = calculateThresholds(alertConfig);
+      const nivelReferenciaCm = thresholds.valores.roja ?? NIVEL_REFERENCIA_CM;
+      const nivelMurallaCm =
+        alertConfig?.muralla_referencia?.valor_cm ?? NIVEL_MURALLA_CM;
       const alertState = evaluateAlertState(nivelCm, thresholds);
       const trend = estimateTrend(combined);
 
@@ -910,6 +975,7 @@ async function startServer() {
           tsUlt: tsUlt.iso,
           tsUltHasTime: tsUlt.hasTime || ultimo.ultimaLectura !== null,
           deltaCm,
+          flecha,
           cambioTexto,
           edadDias,
           fuente: ultimo.fuente === 1 ? "FEWS" : "Histórico IDEAM",
@@ -931,8 +997,8 @@ async function startServer() {
           estacionLatitud: ESTACION_LATITUD,
           estacionLongitud: ESTACION_LONGITUD,
           estacionAltitudMsnm: ESTACION_ALTITUD_MSNM,
-          nivelReferenciaCm: NIVEL_REFERENCIA_CM,
-          nivelMurallaCm: NIVEL_MURALLA_CM,
+          nivelReferenciaCm,
+          nivelMurallaCm,
           diasMaxSinDatos: DIAS_MAX_SIN_DATOS,
           fewsVisorUrl: FEWS_VISOR_URL,
           appUrl: APP_URL,

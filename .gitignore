@@ -6,3 +6,14 @@ node_modules
 
 .angular/
 dist/
+
+# Claves, secretos y estado temporal local (nunca subir al repo público)
+.env
+.env.*
+*.pem
+*.key
+vapid_private*
+vapid_keys*
+estado_push.json
+.push_local/
+

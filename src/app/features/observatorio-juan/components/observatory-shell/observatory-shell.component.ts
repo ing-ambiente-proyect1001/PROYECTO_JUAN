@@ -1,11 +1,15 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  OnDestroy,
   OnInit,
   computed,
   inject,
   signal,
 } from "@angular/core";
+import { SwPush } from "@angular/service-worker";
+import { Subscription } from "rxjs";
+import { NotificacionesPromptComponent } from "../../../../components/notificaciones-prompt/notificaciones-prompt.component";
 import { PwaInstallComponent } from "../../../../components/pwa-install/pwa-install.component";
 import { DashboardService } from "../../../../services/dashboard.service";
 import type { DashboardResponse } from "../../../../../types";
@@ -40,7 +44,12 @@ const TAB_BLOCK_FILTER: Record<
 @Component({
   selector: "app-observatory-shell",
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BottomNavComponent, HydroBlockCardComponent, PwaInstallComponent],
+  imports: [
+    BottomNavComponent,
+    HydroBlockCardComponent,
+    NotificacionesPromptComponent,
+    PwaInstallComponent,
+  ],
   template: `
     <div class="obs-shell">
       <!-- Barra superior de navegación (escritorio/tableta, sin texto JUAN duplicado) -->
@@ -120,6 +129,8 @@ const TAB_BLOCK_FILTER: Record<
           }
         </div>
 
+        <app-notificaciones-prompt />
+
         <footer class="obs-legal-footer">
           <p>
             <strong>Fuente:</strong> IDEAM, Hidrología Nacional Diaria y
@@ -142,8 +153,10 @@ const TAB_BLOCK_FILTER: Record<
     </div>
   `,
 })
-export class ObservatoryShellComponent implements OnInit {
+export class ObservatoryShellComponent implements OnInit, OnDestroy {
   private readonly dashboardService = inject(DashboardService);
+  private readonly swPush = inject(SwPush);
+  private readonly subs = new Subscription();
 
   readonly blocks = signal<ObservatoryBlock[]>(createSeedObservatoryBlocks());
   readonly rawDashboard = signal<DashboardResponse | null>(null);
@@ -169,6 +182,18 @@ export class ObservatoryShellComponent implements OnInit {
 
   ngOnInit(): void {
     void this.fetchDashboard(false);
+    if (this.swPush.isEnabled) {
+      this.subs.add(
+        this.swPush.notificationClicks.subscribe(() => {
+          this.onTabChange("bloques");
+          void this.fetchDashboard(true);
+        })
+      );
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
   }
 
   onBrandClick(event: Event): void {

@@ -45,12 +45,29 @@ export interface ThresholdsInfo {
   };
 }
 
+export type TrendArrow = "▲" | "▼" | "▬";
+
+export interface ResumenLecturaJson {
+  fechaHora: string;
+  nivelCm: number;
+  nivelMetros: number;
+  nivelPrevioCm: number | null;
+  deltaCm: number;
+  variacion24hCm: number | null;
+  flecha: TrendArrow;
+  tendencia: "sube" | "baja" | "sin_cambio";
+  cambioTexto: string;
+  calculadoPor?: string;
+  calculadoEn?: string;
+}
+
 export interface ReadingMeta {
   nivelCm: number;
   fechaUlt: string;
   tsUlt: string;
   tsUltHasTime: boolean;
   deltaCm: number;
+  flecha: TrendArrow;
   cambioTexto: string;
   edadDias: number;
   fuente: string;
