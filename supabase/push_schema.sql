@@ -26,6 +26,7 @@ alter table public.push_suscripciones enable row level security;
 -- Bloquear lectura, actualización directa y borrado desde clave pública (sb_publishable_)
 revoke all on table public.push_suscripciones from anon, authenticated;
 grant insert on table public.push_suscripciones to anon, authenticated;
+grant select, insert, update, delete on table public.push_suscripciones to service_role;
 
 drop policy if exists "permitir_insert_suscripcion_publica" on public.push_suscripciones;
 create policy "permitir_insert_suscripcion_publica"
@@ -109,4 +110,5 @@ create table if not exists public.push_estado (
 
 alter table public.push_estado enable row level security;
 revoke all on table public.push_estado from anon, authenticated;
--- Sin políticas para anon/authenticated: solo sb_secret_ (GitHub Actions) puede leer y escribir aquí.
+grant select, insert, update, delete on table public.push_estado to service_role;
+-- Sin políticas para anon/authenticated: solo sb_secret_ (service_role en GitHub Actions) puede leer y escribir aquí.
