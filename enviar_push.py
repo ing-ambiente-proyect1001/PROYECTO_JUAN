@@ -627,10 +627,13 @@ def main() -> int:
         lecturas = []
 
     if not all([supabase_url, supabase_secret, vapid_private, vapid_subject]):
-        log.info(
-            "Faltan secretos (SUPABASE_URL, SUPABASE_SECRET_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT); "
-            "se omite el envío push sin fallar."
+        msg = (
+            "Faltan secretos (SUPABASE_URL, SUPABASE_SECRET_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT)."
         )
+        if args.prueba:
+            log.error(msg)
+            return 1
+        log.info("%s Se omite el envío push sin fallar.", msg)
         return 0
 
     if not vapid_subject.startswith(("mailto:", "https://")):
@@ -668,10 +671,10 @@ def main() -> int:
             suscripciones = suscripciones[:1]
 
     if not suscripciones:
-        log.info("No hay suscripciones activas para enviar (%s).", tipo_aviso)
+        log.warning("No hay suscripciones activas para enviar (%s).", tipo_aviso)
         if nuevo_estado is not None and not args.solo_yo:
             supabase.guardar_estado(nuevo_estado)
-        return 0
+        return 1 if args.prueba else 0
 
     enviados, expirados, errores = enviar_a_suscripciones(
         supabase, suscripciones, payload, vapid_private, vapid_subject
@@ -686,6 +689,9 @@ def main() -> int:
 
     if nuevo_estado is not None and not args.solo_yo and (enviados > 0 or expirados > 0):
         supabase.guardar_estado(nuevo_estado)
+
+    if args.prueba and enviados == 0:
+        return 1
 
     return 0
 

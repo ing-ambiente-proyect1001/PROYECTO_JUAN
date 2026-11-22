@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from "@angular/core";
-import { SwPush } from "@angular/service-worker";
+import { SwPush, SwUpdate } from "@angular/service-worker";
 import { Subscription } from "rxjs";
 import { NotificacionesPromptComponent } from "../../../../components/notificaciones-prompt/notificaciones-prompt.component";
 import { PwaInstallComponent } from "../../../../components/pwa-install/pwa-install.component";
@@ -156,6 +156,7 @@ const TAB_BLOCK_FILTER: Record<
 export class ObservatoryShellComponent implements OnInit, OnDestroy {
   private readonly dashboardService = inject(DashboardService);
   private readonly swPush = inject(SwPush);
+  private readonly swUpdate = inject(SwUpdate);
   private readonly subs = new Subscription();
 
   readonly blocks = signal<ObservatoryBlock[]>(createSeedObservatoryBlocks());
@@ -189,6 +190,23 @@ export class ObservatoryShellComponent implements OnInit, OnDestroy {
           void this.fetchDashboard(true);
         })
       );
+    }
+    if (this.swUpdate.isEnabled) {
+      this.subs.add(
+        this.swUpdate.versionUpdates.subscribe((evt) => {
+          if (evt.type === "VERSION_READY") {
+            void this.swUpdate
+              .activateUpdate()
+              .then(() => {
+                if (typeof window !== "undefined") {
+                  window.location.reload();
+                }
+              })
+              .catch(() => undefined);
+          }
+        })
+      );
+      void this.swUpdate.checkForUpdate().catch(() => undefined);
     }
   }
 

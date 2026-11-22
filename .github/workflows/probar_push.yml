@@ -1,0 +1,41 @@
+name: Probar notificación push (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      solo_ultimo_dispositivo:
+        description: "Enviar solo al último dispositivo suscrito (recomendado para prueba)"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  probar-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependencias push
+        run: pip install "pywebpush>=2.0.0" "requests>=2.31"
+
+      - name: Enviar notificación de prueba
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          SOLO_ULTIMO: ${{ inputs.solo_ultimo_dispositivo }}
+        run: |
+          if [ "$SOLO_ULTIMO" = "true" ]; then
+            python enviar_push.py --prueba --solo-yo
+          else
+            python enviar_push.py --prueba
+          fi

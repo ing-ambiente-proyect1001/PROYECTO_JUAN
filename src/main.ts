@@ -7,11 +7,26 @@ bootstrapApplication(AppComponent, appConfig)
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .getRegistrations()
-        .then((registrations) => {
+        .then(async (registrations) => {
+          let removedLegacy = false;
           for (const reg of registrations) {
             const url = reg.active?.scriptURL ?? reg.waiting?.scriptURL ?? "";
             if (url.endsWith("/sw.js")) {
-              void reg.unregister();
+              const ok = await reg.unregister().catch(() => false);
+              if (ok) removedLegacy = true;
+            }
+          }
+          if (removedLegacy && "caches" in window) {
+            const keys = await caches.keys().catch(() => [] as string[]);
+            await Promise.all(
+              keys
+                .filter((k) => k.startsWith("juan-pwa-"))
+                .map((k) => caches.delete(k))
+            );
+            const guardKey = "juan_sw_migrated_v1";
+            if (!window.sessionStorage.getItem(guardKey)) {
+              window.sessionStorage.setItem(guardKey, "1");
+              window.location.reload();
             }
           }
         })

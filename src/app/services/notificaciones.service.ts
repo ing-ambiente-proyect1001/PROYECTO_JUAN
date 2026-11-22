@@ -114,9 +114,12 @@ export class NotificacionesService implements OnDestroy {
     this.isIos.set(ios);
 
     this.standaloneMq = window.matchMedia("(display-mode: standalone)");
-    this.isStandalone.set(
-      this.standaloneMq.matches || Boolean(nav.standalone)
-    );
+    const isPwaDisplay =
+      this.standaloneMq.matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches ||
+      window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+      Boolean(nav.standalone);
+    this.isStandalone.set(isPwaDisplay);
     this.standaloneMq.addEventListener("change", this.onDisplayModeChange);
     window.addEventListener("appinstalled", this.onAppInstalled);
 
