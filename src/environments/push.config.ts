@@ -8,7 +8,7 @@
  */
 export const PUSH_PUBLIC_CONFIG = {
   /** Clave pública VAPID en formato Base64 URL-safe (generada con pywebpush/vapid). */
-  vapidPublicKey: "BEkjd6hqx28RC9KlXJLMqqGHnMDyyu-HSAMd4CE0lRLKHdipyr3zsUSHfLVUtEsIItXwKcwM6LNwFh3s9KuotR0",
+  vapidPublicKey: "BHpyUC2SSNukBkTqhIuP_dhpkKnbj8RJJO0Wqy6_6IbjJwfs5FyWL6n5NnsKuNVDp4igQ0RzoBqxUK9NY6xqyvk",
 
   /** URL pública de tu proyecto Supabase (ej. "https://abcdefghijklmno.supabase.co"). */
   supabaseUrl: "https://wxifycmlstbzzcbatdks.supabase.co",

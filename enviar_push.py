@@ -476,6 +476,11 @@ def escribir_resumen_en_fews_json(resumen: dict[str, Any]) -> None:
         log.warning("No se pudo actualizar resumenLectura en fews_calamar.json: %s", exc)
 
 
+def _emit_gh_error(msg: str) -> None:
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        print(f"::error::{msg}", flush=True)
+
+
 class SupabaseAdminClient:
     def __init__(self, url: str, secret_key: str) -> None:
         if requests is None:
@@ -486,6 +491,14 @@ class SupabaseAdminClient:
             "Content-Type": "application/json",
         }
 
+    def _check_response(self, r: Any, contexto: str) -> None:
+        if r.ok:
+            return
+        detalle = (r.text or "").strip().replace("\n", " ")[:300]
+        raise RuntimeError(
+            f"Error de Supabase al {contexto} (HTTP {r.status_code}): {detalle or 'sin detalle'}"
+        )
+
     def obtener_estado(self) -> dict[str, Any]:
         r = requests.get(
             f"{self.base_url}/rest/v1/push_estado",
@@ -493,7 +506,7 @@ class SupabaseAdminClient:
             headers=self.headers,
             timeout=15,
         )
-        r.raise_for_status()
+        self._check_response(r, "consultar push_estado")
         filas = r.json()
         return filas[0] if filas else {"id": ESTADO_ID, "ultimo_estado_cota": "verde"}
 
@@ -504,7 +517,7 @@ class SupabaseAdminClient:
             json=estado,
             timeout=15,
         )
-        r.raise_for_status()
+        self._check_response(r, "guardar push_estado")
 
     def listar_suscripciones_activas(self) -> list[dict[str, Any]]:
         r = requests.get(
@@ -517,7 +530,7 @@ class SupabaseAdminClient:
             headers=self.headers,
             timeout=15,
         )
-        r.raise_for_status()
+        self._check_response(r, "listar push_suscripciones")
         return r.json()
 
     def desactivar_suscripcion(self, endpoint: str) -> None:
@@ -549,12 +562,13 @@ def enviar_a_suscripciones(
     payload: dict[str, Any],
     vapid_private_key: str,
     vapid_subject: str,
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int, str | None]:
     if webpush is None:
         raise RuntimeError("Falta el paquete 'pywebpush'. Ejecuta: pip install pywebpush")
     enviados = 0
     expirados = 0
     errores = 0
+    ultimo_error: str | None = None
     data_str = json.dumps(payload, ensure_ascii=False)
 
     for sub in suscripciones:
@@ -581,12 +595,17 @@ def enviar_a_suscripciones(
                 log.info("Suscripción expirada (%s); marcada inactiva.", status)
             else:
                 errores += 1
-                log.warning("Fallo enviando push (%s): %s", status, exc)
+                body = ""
+                if getattr(exc, "response", None) is not None:
+                    body = (getattr(exc.response, "text", "") or "").strip()[:200]
+                ultimo_error = f"Error WebPush HTTP {status}: {body or exc}"
+                log.warning("Fallo enviando push (%s): %s", status, ultimo_error)
         except Exception as exc:
             errores += 1
+            ultimo_error = f"Error VAPID/Push: {exc}"
             log.warning("Error inesperado enviando push: %s", exc)
 
-    return enviados, expirados, errores
+    return enviados, expirados, errores, ultimo_error
 
 
 def main() -> int:
@@ -613,7 +632,7 @@ def main() -> int:
 
     supabase_url = os.getenv("SUPABASE_URL", "").strip()
     supabase_secret = os.getenv("SUPABASE_SECRET_KEY", "").strip()
-    vapid_private = os.getenv("VAPID_PRIVATE_KEY", "").strip()
+    vapid_private = os.getenv("VAPID_PRIVATE_KEY", "").replace("\\n", "\n").strip()
     vapid_subject = os.getenv("VAPID_SUBJECT", "").strip()
 
     config = cargar_config()
@@ -626,14 +645,35 @@ def main() -> int:
     else:
         lecturas = []
 
-    if not all([supabase_url, supabase_secret, vapid_private, vapid_subject]):
+    faltantes = [
+        nombre
+        for nombre, val in (
+            ("SUPABASE_URL", supabase_url),
+            ("SUPABASE_SECRET_KEY", supabase_secret),
+            ("VAPID_PRIVATE_KEY", vapid_private),
+            ("VAPID_SUBJECT", vapid_subject),
+        )
+        if not val
+    ]
+    if faltantes:
+        msg = f"Faltan secretos en GitHub Actions: {', '.join(faltantes)}."
+        if args.prueba:
+            log.error(msg)
+            _emit_gh_error(msg)
+            return 1
+        log.info("%s Se omite el envío push sin fallar.", msg)
+        return 0
+
+    if not re.match(r"^https://[a-z0-9-]+\.supabase\.co/?$", supabase_url, re.I):
         msg = (
-            "Faltan secretos (SUPABASE_URL, SUPABASE_SECRET_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT)."
+            "SUPABASE_URL no tiene el formato https://<proyecto>.supabase.co "
+            "(verifica que no hayas pegado la URL del panel de Supabase)."
         )
         if args.prueba:
             log.error(msg)
+            _emit_gh_error(msg)
             return 1
-        log.info("%s Se omite el envío push sin fallar.", msg)
+        log.warning(msg)
         return 0
 
     if not vapid_subject.startswith(("mailto:", "https://")):
@@ -658,7 +698,16 @@ def main() -> int:
             log.info("Sin condiciones de disparo para nuevo aviso push.")
             return 0
 
-    suscripciones = supabase.listar_suscripciones_activas()
+    try:
+        suscripciones = supabase.listar_suscripciones_activas()
+    except Exception as exc:
+        msg = str(exc)
+        log.error(msg)
+        if args.prueba:
+            _emit_gh_error(msg)
+            return 1
+        return 0
+
     if args.solo_yo:
         filtro = (args.solo_yo_id or "").strip()
         if filtro:
@@ -671,12 +720,19 @@ def main() -> int:
             suscripciones = suscripciones[:1]
 
     if not suscripciones:
-        log.warning("No hay suscripciones activas para enviar (%s).", tipo_aviso)
+        msg = (
+            "No hay suscripciones activas en push_suscripciones. "
+            "Primero abre la app instalada en el teléfono y toca 'Sí, avisarme'."
+        )
+        log.warning("%s (%s)", msg, tipo_aviso)
         if nuevo_estado is not None and not args.solo_yo:
             supabase.guardar_estado(nuevo_estado)
-        return 1 if args.prueba else 0
+        if args.prueba:
+            _emit_gh_error(msg)
+            return 1
+        return 0
 
-    enviados, expirados, errores = enviar_a_suscripciones(
+    enviados, expirados, errores, ultimo_error = enviar_a_suscripciones(
         supabase, suscripciones, payload, vapid_private, vapid_subject
     )
     log.info(
@@ -691,6 +747,11 @@ def main() -> int:
         supabase.guardar_estado(nuevo_estado)
 
     if args.prueba and enviados == 0:
+        msg = (
+            ultimo_error
+            or f"No se entregó la prueba (expirados={expirados}, errores={errores})."
+        )
+        _emit_gh_error(msg)
         return 1
 
     return 0
