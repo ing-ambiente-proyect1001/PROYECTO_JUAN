@@ -1,0 +1,64 @@
+name: Desplegar observatorio en GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "assets/**"
+      - "static/**"
+      - "config_alertas.json"
+      - "ngsw-config.json"
+      - "angular.json"
+      - "package.json"
+      - ".github/workflows/desplegar_pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar dependencias Angular
+        run: npm install --no-audit --no-fund
+
+      - name: Compilar producción para /PROYECTO_JUAN/
+        run: npx ng build --base-href /PROYECTO_JUAN/
+
+      - name: Asegurar .nojekyll
+        run: touch dist/.nojekyll
+
+      - name: Subir artefacto de GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
