@@ -18,13 +18,17 @@ export const PUSH_PUBLIC_CONFIG = {
 } as const;
 
 export function isPushPublicConfigReady(): boolean {
-  const { vapidPublicKey, supabaseUrl, supabasePublishableKey } =
-    PUSH_PUBLIC_CONFIG;
-  return (
-    vapidPublicKey.length > 20 &&
-    !vapidPublicKey.includes("REEMPLAZAR") &&
-    supabaseUrl.startsWith("https://") &&
-    !supabaseUrl.includes("REEMPLAZAR") &&
-    supabasePublishableKey.startsWith("sb_publishable_")
-  );
+  const vapidPublicKey = PUSH_PUBLIC_CONFIG.vapidPublicKey.trim();
+  const supabaseUrl = PUSH_PUBLIC_CONFIG.supabaseUrl.trim();
+  const supabasePublishableKey = PUSH_PUBLIC_CONFIG.supabasePublishableKey.trim();
+
+  const validVapid = /^[A-Za-z0-9_-]{60,}$/.test(vapidPublicKey);
+  const validUrl =
+    /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl) &&
+    !supabaseUrl.includes("TU-PROYECTO");
+  const validPublishable =
+    supabasePublishableKey.startsWith("sb_publishable_") &&
+    supabasePublishableKey.length > 20;
+
+  return validVapid && validUrl && validPublishable;
 }

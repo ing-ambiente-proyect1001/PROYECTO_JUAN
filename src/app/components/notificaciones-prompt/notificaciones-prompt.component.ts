@@ -65,8 +65,10 @@ import { NotificacionesService } from "../../services/notificaciones.service";
               @case ("unavailable") {
                 <h3 class="obs-notif-title">Avisos no disponibles en este dispositivo</h3>
                 <p class="obs-notif-text">
-                  Tu navegador actual no soporta notificaciones Web Push o la configuración
-                  pública de avisos aún no está habilitada.
+                  {{
+                    notif.unavailableReason() ||
+                      "Tu navegador actual no soporta notificaciones Web Push o el Service Worker aún no está activo."
+                  }}
                 </p>
               }
             }

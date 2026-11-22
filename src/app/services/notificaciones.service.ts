@@ -32,6 +32,7 @@ export class NotificacionesService implements OnDestroy {
   readonly isIos = signal<boolean>(false);
   readonly isSupported = signal<boolean>(false);
   readonly configReady = signal<boolean>(isPushPublicConfigReady());
+  readonly unavailableReason = signal<string | null>(null);
   readonly permission = signal<NotificationPermission | "unsupported">(
     "unsupported"
   );
@@ -119,15 +120,36 @@ export class NotificacionesService implements OnDestroy {
     this.standaloneMq.addEventListener("change", this.onDisplayModeChange);
     window.addEventListener("appinstalled", this.onAppInstalled);
 
-    const hasApis =
-      "Notification" in window &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      this.swPush.isEnabled;
+    const hasNotif = "Notification" in window;
+    const hasSw = "serviceWorker" in navigator;
+    const hasPush = "PushManager" in window;
+    const swEnabled = this.swPush.isEnabled;
 
+    const hasApis = hasNotif && hasSw && hasPush && swEnabled;
     this.isSupported.set(hasApis);
+
+    if (!this.configReady()) {
+      this.unavailableReason.set(
+        "Falta validar la clave pública VAPID, la URL o la clave sb_publishable_ en push.config.ts."
+      );
+    } else if (!window.isSecureContext) {
+      this.unavailableReason.set(
+        "Web Push requiere conexión segura HTTPS (usa la URL de GitHub Pages)."
+      );
+    } else if (!hasNotif || !hasPush || !hasSw) {
+      this.unavailableReason.set(
+        "Este navegador no expone la API de notificaciones Push (PushManager)."
+      );
+    } else if (!swEnabled) {
+      this.unavailableReason.set(
+        "El Service Worker de producción (ngsw-worker.js) no está activo en modo desarrollo; compila para producción o abre la versión publicada en GitHub Pages."
+      );
+    } else {
+      this.unavailableReason.set(null);
+    }
+
     this.permission.set(
-      "Notification" in window ? Notification.permission : "unsupported"
+      hasNotif ? Notification.permission : "unsupported"
     );
 
     try {
