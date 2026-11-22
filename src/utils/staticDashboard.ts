@@ -300,8 +300,6 @@ function parseSubzonasCsv(text: string): Subzona[] {
   return subzonas;
 }
 
-const FEWS_NIVEL_URL =
-  "https://fews.ideam.gov.co/visorfews/descargas/SeriesHM_conv.csv";
 
 async function loadHistoricalRows(refresh: boolean): Promise<InternalRow[]> {
   const fetchText = async (url: string, timeoutMs: number): Promise<string> => {
@@ -360,40 +358,6 @@ function parseFewsJson(payload: FewsJsonPayload): InternalRow[] {
   return rows;
 }
 
-function parseFewsCsv(text: string): InternalRow[] {
-  const cleaned = text.replace(/^\uFEFF/, "");
-  const lines = cleaned.split(/\r?\n/);
-  if (lines.length < 2) return [];
-
-  const header = parseCsvLine(lines[0], ";").map((h) => h.trim());
-  const iEst = header.indexOf("ID_ESTACION");
-  const iFecha = header.indexOf("FECHA_HORA");
-  const iNivel = header.indexOf("NIVEL_INST");
-  if (iEst === -1 || iFecha === -1 || iNivel === -1) return [];
-
-  const targetCode = ESTACION_CODIGO.replace(/^0+/, "");
-  const dedup = new Map<string, InternalRow>();
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const cols = parseCsvLine(line, ";");
-    const rowCode = (cols[iEst] || "").trim().replace(/^0+/, "");
-    if (rowCode !== targetCode) continue;
-    const fecha = parseNaiveTimestamp(cols[iFecha]);
-    const nivelM = Number(String(cols[iNivel] || "").trim().replace(",", "."));
-    if (!fecha || !Number.isFinite(nivelM)) continue;
-    const nivelCm = cleanNivel(Math.round(nivelM * 10000) / 100);
-    if (nivelCm === null) continue;
-    dedup.set(fecha.iso, {
-      fecha,
-      nivelCm,
-      ultimaLectura: fecha,
-      fuente: 1,
-    });
-  }
-  return Array.from(dedup.values()).sort((a, b) => a.fecha.ms - b.fecha.ms);
-}
-
 function mergeFewsSources(sources: InternalRow[][]): InternalRow[] {
   const map = new Map<string, InternalRow>();
   for (const list of sources) {
@@ -402,34 +366,6 @@ function mergeFewsSources(sources: InternalRow[][]): InternalRow[] {
     }
   }
   return Array.from(map.values()).sort((a, b) => a.fecha.ms - b.fecha.ms);
-}
-
-async function fetchLiveFewsCsv(timeoutMs: number): Promise<InternalRow[]> {
-  const candidates = [
-    FEWS_NIVEL_URL,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(FEWS_NIVEL_URL)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(FEWS_NIVEL_URL)}`,
-  ];
-
-  const tryOne = async (url: string): Promise<InternalRow[]> => {
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const response = await fetch(url, {
-        cache: "no-store",
-        signal: controller.signal,
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const text = await response.text();
-      const parsed = parseFewsCsv(text);
-      if (parsed.length === 0) throw new Error("Sin lecturas válidas");
-      return parsed;
-    } finally {
-      window.clearTimeout(timer);
-    }
-  };
-
-  return Promise.any(candidates.map((u) => tryOne(u)));
 }
 
 async function loadAlertConfig(): Promise<ConfigAlertasJson | null> {
@@ -474,10 +410,9 @@ async function loadFewsRows(refresh: boolean): Promise<{
     ? `${BUNDLED_FEWS_PATH}?t=${Date.now()}`
     : BUNDLED_FEWS_PATH;
 
-  const [localRes, remoteRes, liveRes] = await Promise.allSettled([
+  const [localRes, remoteRes] = await Promise.allSettled([
     fetchJson(localUrl, 6000),
     fetchJson(remoteUrl, 6000),
-    fetchLiveFewsCsv(7000),
   ]);
 
   const orderedSources: InternalRow[][] = [];
@@ -491,9 +426,6 @@ async function loadFewsRows(refresh: boolean): Promise<{
     const parsed = parseFewsJson(remoteRes.value);
     if (parsed.length > 0) orderedSources.push(parsed);
     if (remoteRes.value.resumenLectura) resumenLectura = remoteRes.value.resumenLectura;
-  }
-  if (liveRes.status === "fulfilled" && liveRes.value.length > 0) {
-    orderedSources.push(liveRes.value);
   }
 
   const merged = mergeFewsSources(orderedSources);
