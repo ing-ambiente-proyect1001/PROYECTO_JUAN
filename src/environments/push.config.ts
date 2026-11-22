@@ -22,9 +22,9 @@ export function isPushPublicConfigReady(): boolean {
     PUSH_PUBLIC_CONFIG;
   return (
     vapidPublicKey.length > 20 &&
-    !vapidPublicKey.includes("BEkjd6hqx28RC9KlXJLMqqGHnMDyyu-HSAMd4CE0lRLKHdipyr3zsUSHfLVUtEsIItXwKcwM6LNwFh3s9KuotR0") &&
-    supabaseUrl.startsWith("https://wxifycmlstbzzcbatdks.supabase.co") &&
-    !supabaseUrl.includes("https://wxifycmlstbzzcbatdks.supabase.co") &&
+    !vapidPublicKey.includes("REEMPLAZAR") &&
+    supabaseUrl.startsWith("https://") &&
+    !supabaseUrl.includes("REEMPLAZAR") &&
     supabasePublishableKey.startsWith("sb_publishable_")
   );
 }
