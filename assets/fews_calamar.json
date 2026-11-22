@@ -1,13 +1,20 @@
 {
-  "updatedAt": "2026-11-22T07:29:21.086Z",
+  "updatedAt": "2026-11-22T15:35:42.914Z",
   "station": "29037020",
+  "resumenLectura": {
+    "fechaHora": "2026-11-22T06:00:00",
+    "nivelCm": 474.0,
+    "nivelMetros": 4.74,
+    "nivelPrevioCm": 481.0,
+    "deltaCm": -7.0,
+    "variacion24hCm": -12.0,
+    "flecha": "▼",
+    "tendencia": "baja",
+    "cambioTexto": "Bajó 7 cm vs. lectura anterior",
+    "calculadoPor": "enviar_push.py",
+    "calculadoEn": "2026-11-22T15:35:43.544407+00:00"
+  },
   "records": [
-    {
-      "f": "2026-10-22T18:00:00",
-      "n": 475,
-      "u": "2026-10-22T18:00:00",
-      "s": 1
-    },
     {
       "f": "2026-10-23T06:00:00",
       "n": 481,
@@ -361,19 +368,18 @@
       "n": 486,
       "u": "2026-11-21T06:00:00",
       "s": 1
+    },
+    {
+      "f": "2026-11-21T18:00:00",
+      "n": 481,
+      "u": "2026-11-21T18:00:00",
+      "s": 1
+    },
+    {
+      "f": "2026-11-22T06:00:00",
+      "n": 474,
+      "u": "2026-11-22T06:00:00",
+      "s": 1
     }
-  ],
-  "resumenLectura": {
-    "fechaHora": "2026-11-21T06:00:00",
-    "nivelCm": 486.0,
-    "nivelMetros": 4.86,
-    "nivelPrevioCm": 492.0,
-    "deltaCm": -6.0,
-    "variacion24hCm": -10.0,
-    "flecha": "▼",
-    "tendencia": "baja",
-    "cambioTexto": "Bajó 6 cm vs. lectura anterior",
-    "calculadoPor": "enviar_push.py",
-    "calculadoEn": "2026-11-22T14:05:14.182701+00:00"
-  }
+  ]
 }
