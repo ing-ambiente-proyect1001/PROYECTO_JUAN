@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-22T15:35:42.914Z",
+  "updatedAt": "2026-11-22T19:45:05.047Z",
   "station": "29037020",
   "resumenLectura": {
     "fechaHora": "2026-11-22T06:00:00",
@@ -12,7 +12,7 @@
     "tendencia": "baja",
     "cambioTexto": "Bajó 7 cm vs. lectura anterior",
     "calculadoPor": "enviar_push.py",
-    "calculadoEn": "2026-11-22T15:35:43.544407+00:00"
+    "calculadoEn": "2026-11-22T19:45:05.476264+00:00"
   },
   "records": [
     {
