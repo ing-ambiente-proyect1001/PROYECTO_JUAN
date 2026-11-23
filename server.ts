@@ -1076,14 +1076,29 @@ async function startServer() {
         if (filePath.endsWith(".webmanifest")) {
           res.setHeader("Content-Type", "application/manifest+json; charset=utf-8");
           res.setHeader("Cache-Control", "no-cache");
-        } else if (filePath.endsWith("sw.js")) {
+        } else if (
+          filePath.endsWith("ngsw-worker.js") ||
+          filePath.endsWith("sw.js")
+        ) {
           res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+          res.setHeader("Cache-Control", "no-cache");
+        } else if (filePath.endsWith("ngsw.json")) {
+          res.setHeader("Content-Type", "application/json; charset=utf-8");
           res.setHeader("Cache-Control", "no-cache");
         }
       },
     })
   );
-  app.get("/{*splat}", (_req, res) => {
+  app.get("/{*splat}", (req, res) => {
+    if (
+      req.path.endsWith(".js") ||
+      req.path.endsWith(".css") ||
+      req.path.endsWith(".json") ||
+      req.path.endsWith(".webmanifest")
+    ) {
+      res.status(404).type("text/plain").send("Not found");
+      return;
+    }
     const indexPath = path.join(distDir, "index.html");
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
