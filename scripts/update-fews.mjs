@@ -110,14 +110,15 @@ async function main() {
     throw new Error("Formato inesperado en SeriesHM_conv.csv.");
   }
 
-  const targetId = `00${ESTACION_CODIGO}`;
+  const targetCode = ESTACION_CODIGO.replace(/^0+/, "");
   const dedup = new Map();
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
     const cols = parseCsvLine(line, ";");
-    if (cols[iEst]?.trim() !== targetId) continue;
+    const rowCode = (cols[iEst] || "").trim().replace(/^0+/, "");
+    if (rowCode !== targetCode) continue;
 
     const ts = parseTimestamp(cols[iFecha]);
     const nivelM = Number(String(cols[iNivel] || "").trim().replace(",", "."));
@@ -231,6 +232,34 @@ async function main() {
       calculadoPor: "scripts/update-fews.mjs",
       calculadoEn: new Date().toISOString(),
     };
+  }
+
+  let hasMeaningfulChange = true;
+  if (fs.existsSync(OUT_PATH)) {
+    try {
+      const prev = JSON.parse(fs.readFileSync(OUT_PATH, "utf-8"));
+      const stripMeta = (r) => {
+        if (!r || typeof r !== "object") return null;
+        const { calculadoEn: _ce, calculadoPor: _cp, ...rest } = r;
+        return rest;
+      };
+      const sameRecords = JSON.stringify(prev?.records ?? null) === JSON.stringify(sorted);
+      const sameResumen =
+        JSON.stringify(stripMeta(prev?.resumenLectura)) ===
+        JSON.stringify(stripMeta(resumenLectura));
+      if (sameRecords && sameResumen) {
+        hasMeaningfulChange = false;
+      }
+    } catch {
+      hasMeaningfulChange = true;
+    }
+  }
+
+  if (!hasMeaningfulChange) {
+    console.log(
+      `FEWS sin cambios nuevos (${sorted.length} registros; última: ${sorted[sorted.length - 1].f}).`
+    );
+    return;
   }
 
   const payload = {

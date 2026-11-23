@@ -465,7 +465,11 @@ def escribir_resumen_en_fews_json(resumen: dict[str, Any]) -> None:
         return
     try:
         data = json.loads(FEWS_JSON_PATH.read_text(encoding="utf-8"))
-        if data.get("resumenLectura") == resumen:
+        prev = data.get("resumenLectura")
+        ignorar = {"calculadoEn", "calculadoPor"}
+        if isinstance(prev, dict) and {
+            k: v for k, v in prev.items() if k not in ignorar
+        } == {k: v for k, v in resumen.items() if k not in ignorar}:
             return
         data["resumenLectura"] = resumen
         serializado = json.dumps(data, ensure_ascii=False, indent=2) + "\n"

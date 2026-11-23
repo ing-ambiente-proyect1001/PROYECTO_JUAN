@@ -1,26 +1,20 @@
 {
-  "updatedAt": "2026-11-23T10:10:56.282Z",
+  "updatedAt": "2026-11-23T15:01:12.827Z",
   "station": "29037020",
   "resumenLectura": {
-    "fechaHora": "2026-11-22T06:00:00",
-    "nivelCm": 474.0,
-    "nivelMetros": 4.74,
-    "nivelPrevioCm": 481.0,
-    "deltaCm": -7.0,
-    "variacion24hCm": -12.0,
-    "flecha": "▼",
-    "tendencia": "baja",
-    "cambioTexto": "Bajó 7 cm vs. lectura anterior",
-    "calculadoPor": "enviar_push.py",
-    "calculadoEn": "2026-11-23T10:10:56.648506+00:00"
+    "fechaHora": "2026-11-23T06:00:00",
+    "nivelCm": 464,
+    "nivelMetros": 4.64,
+    "nivelPrevioCm": 460,
+    "deltaCm": 4,
+    "variacion24hCm": -10,
+    "flecha": "▲",
+    "tendencia": "sube",
+    "cambioTexto": "Subió 4 cm vs. lectura anterior",
+    "calculadoPor": "scripts/update-fews.mjs",
+    "calculadoEn": "2026-11-23T15:01:12.826Z"
   },
   "records": [
-    {
-      "f": "2026-10-23T18:00:00",
-      "n": 486,
-      "u": "2026-10-23T18:00:00",
-      "s": 1
-    },
     {
       "f": "2026-10-24T06:00:00",
       "n": 491,
@@ -373,6 +367,18 @@
       "f": "2026-11-22T06:00:00",
       "n": 474,
       "u": "2026-11-22T06:00:00",
+      "s": 1
+    },
+    {
+      "f": "2026-11-22T18:00:00",
+      "n": 460,
+      "u": "2026-11-22T18:00:00",
+      "s": 1
+    },
+    {
+      "f": "2026-11-23T06:00:00",
+      "n": 464,
+      "u": "2026-11-23T06:00:00",
       "s": 1
     }
   ]

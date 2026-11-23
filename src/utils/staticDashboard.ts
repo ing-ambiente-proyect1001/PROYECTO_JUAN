@@ -320,7 +320,10 @@ async function loadHistoricalRows(refresh: boolean): Promise<InternalRow[]> {
   };
 
   try {
-    const remoteUrl = refresh ? `${RAW_CSV_URL}?t=${Date.now()}` : RAW_CSV_URL;
+    const cacheTag = refresh
+      ? `t=${Date.now()}`
+      : `v=${Math.floor(Date.now() / 60_000)}`;
+    const remoteUrl = `${RAW_CSV_URL}?${cacheTag}`;
     const remoteText = await fetchText(remoteUrl, 6000);
     const parsed = parseHistoricalCsv(remoteText);
     if (parsed.length >= 2) return parsed;
@@ -403,9 +406,10 @@ async function loadFewsRows(refresh: boolean): Promise<{
     }
   };
 
-  const remoteUrl = refresh
-    ? `${RAW_FEWS_URL}?t=${Date.now()}`
-    : RAW_FEWS_URL;
+  const cacheTag = refresh
+    ? `t=${Date.now()}`
+    : `v=${Math.floor(Date.now() / 60_000)}`;
+  const remoteUrl = `${RAW_FEWS_URL}?${cacheTag}`;
   const localUrl = refresh
     ? `${BUNDLED_FEWS_PATH}?t=${Date.now()}`
     : BUNDLED_FEWS_PATH;
@@ -417,15 +421,21 @@ async function loadFewsRows(refresh: boolean): Promise<{
 
   const orderedSources: InternalRow[][] = [];
   let resumenLectura: ResumenLecturaJson | null = null;
+  const pickNewerResumen = (cand?: ResumenLecturaJson | null): void => {
+    if (!cand?.fechaHora) return;
+    if (!resumenLectura?.fechaHora || cand.fechaHora >= resumenLectura.fechaHora) {
+      resumenLectura = cand;
+    }
+  };
   if (localRes.status === "fulfilled") {
     const parsed = parseFewsJson(localRes.value);
     if (parsed.length > 0) orderedSources.push(parsed);
-    if (localRes.value.resumenLectura) resumenLectura = localRes.value.resumenLectura;
+    pickNewerResumen(localRes.value.resumenLectura);
   }
   if (remoteRes.status === "fulfilled") {
     const parsed = parseFewsJson(remoteRes.value);
     if (parsed.length > 0) orderedSources.push(parsed);
-    if (remoteRes.value.resumenLectura) resumenLectura = remoteRes.value.resumenLectura;
+    pickNewerResumen(remoteRes.value.resumenLectura);
   }
 
   const merged = mergeFewsSources(orderedSources);
