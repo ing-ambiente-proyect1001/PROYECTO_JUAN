@@ -10,13 +10,16 @@ import { buildStaticDashboard } from "../../utils/staticDashboard";
 export class DashboardService {
   private readonly http = inject(HttpClient);
 
-  async getDashboard(refreshFews = false): Promise<DashboardResponse> {
+  async getDashboard(
+    refreshFews = false,
+    onPartial?: (partial: DashboardResponse) => void
+  ): Promise<DashboardResponse> {
     const isGitHubPages =
       typeof window !== "undefined" &&
       window.location.hostname.endsWith("github.io");
 
     if (isGitHubPages) {
-      return buildStaticDashboard(refreshFews);
+      return buildStaticDashboard(refreshFews, onPartial);
     }
 
     const cacheBuster = `_=${Date.now()}`;
@@ -37,6 +40,6 @@ export class DashboardService {
       // Static hosting without /api/dashboard backend — fall back to static CSV + Open-Meteo.
     }
 
-    return buildStaticDashboard(refreshFews);
+    return buildStaticDashboard(refreshFews, onPartial);
   }
 }

@@ -15,6 +15,7 @@ import { DashboardService } from "../../../../services/dashboard.service";
 import type { DashboardResponse } from "../../../../../types";
 import { formatNumberComma } from "../../../../../utils/format";
 import {
+  CALAMAR_STATION_SEED,
   createSeedObservatoryBlocks,
   mapDashboardToObservatoryBlocks,
 } from "../../data/calamar-seed-blocks";
@@ -117,15 +118,39 @@ const TAB_BLOCK_FILTER: Record<
         }
 
         <div class="obs-blocks-stack">
-          @for (block of visibleBlocks(); track block.id) {
-            <app-hydro-block-card
-              [block]="block"
-              [refreshing]="refreshing()"
-              (refreshRequested)="fetchDashboard(true)"
-              (exportCsvRequested)="downloadCsv()"
-              (shareRequested)="shareBlock($event)"
-              (navigateTabRequested)="onTabChange($event)"
-            />
+          @if (initialLoading()) {
+            <article
+              class="hydro-block-card obs-loading-card"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              <div class="obs-loading-header">
+                <span class="obs-loading-kicker"
+                  >IDEAM — Estación Calamar · 29037020</span
+                >
+                <h3>Cargando lectura limnimétrica más reciente…</h3>
+                <p>
+                  Consultando la serie histórica y las observaciones recientes
+                  de FEWS IDEAM.
+                </p>
+              </div>
+              <div class="obs-loading-skeletons" aria-hidden="true">
+                <div class="obs-skeleton-bar is-lg"></div>
+                <div class="obs-skeleton-bar is-md"></div>
+                <div class="obs-skeleton-box"></div>
+              </div>
+            </article>
+          } @else {
+            @for (block of visibleBlocks(); track block.id) {
+              <app-hydro-block-card
+                [block]="block"
+                [refreshing]="refreshing()"
+                (refreshRequested)="fetchDashboard(true)"
+                (exportCsvRequested)="downloadCsv()"
+                (shareRequested)="shareBlock($event)"
+                (navigateTabRequested)="onTabChange($event)"
+              />
+            }
           }
         </div>
 
@@ -159,9 +184,10 @@ export class ObservatoryShellComponent implements OnInit, OnDestroy {
   private readonly swUpdate = inject(SwUpdate);
   private readonly subs = new Subscription();
 
-  readonly blocks = signal<ObservatoryBlock[]>(createSeedObservatoryBlocks());
+  readonly blocks = signal<ObservatoryBlock[]>([]);
   readonly rawDashboard = signal<DashboardResponse | null>(null);
   readonly activeTab = signal<ObservatoryNavTab>("bloques");
+  readonly initialLoading = signal<boolean>(true);
   readonly refreshing = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
 
@@ -170,14 +196,18 @@ export class ObservatoryShellComponent implements OnInit, OnDestroy {
     return this.blocks().filter((block) => allowedTypes.includes(block.tipo));
   });
 
-  readonly primaryBlock = computed(() => this.blocks()[0]);
+  readonly primaryBlock = computed(() => this.blocks()[0] ?? null);
 
-  readonly primaryStation = computed(() => this.primaryBlock().station);
+  readonly primaryStation = computed(
+    () => this.primaryBlock()?.station ?? CALAMAR_STATION_SEED
+  );
 
-  readonly primaryReading = computed(() => this.primaryBlock().lectura);
+  readonly primaryReading = computed(
+    () => this.primaryBlock()?.lectura ?? null
+  );
 
   readonly hasActiveAlert = computed(() => {
-    const state = this.primaryReading().estadoAlerta;
+    const state = this.primaryReading()?.estadoAlerta;
     return state === "amarilla" || state === "naranja" || state === "roja";
   });
 
@@ -229,11 +259,24 @@ export class ObservatoryShellComponent implements OnInit, OnDestroy {
   async fetchDashboard(refreshFews = false): Promise<void> {
     this.refreshing.set(true);
     try {
-      const payload = await this.dashboardService.getDashboard(refreshFews);
+      const payload = await this.dashboardService.getDashboard(
+        refreshFews,
+        (partial) => {
+          this.rawDashboard.set(partial);
+          this.blocks.set(mapDashboardToObservatoryBlocks(partial));
+          this.initialLoading.set(false);
+          this.errorMessage.set(null);
+        }
+      );
       this.rawDashboard.set(payload);
       this.blocks.set(mapDashboardToObservatoryBlocks(payload));
+      this.initialLoading.set(false);
       this.errorMessage.set(null);
     } catch (err) {
+      if (this.blocks().length === 0) {
+        this.blocks.set(createSeedObservatoryBlocks());
+      }
+      this.initialLoading.set(false);
       const msg =
         err instanceof Error
           ? err.message

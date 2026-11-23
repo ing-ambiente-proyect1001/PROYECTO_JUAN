@@ -1459,3 +1459,65 @@ a:focus-visible {
   gap: 0.55rem;
 }
 
+.obs-loading-card {
+  padding: 1.25rem;
+}
+
+.obs-loading-kicker {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--obs-ink-muted);
+  margin-bottom: 0.3rem;
+}
+
+.obs-loading-header h3 {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: var(--obs-ink);
+}
+
+.obs-loading-header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--obs-ink-muted);
+}
+
+.obs-loading-skeletons {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.obs-skeleton-bar,
+.obs-skeleton-box {
+  border-radius: 10px;
+  background: linear-gradient(90deg, #efeee9 25%, #f7f6f2 50%, #efeee9 75%);
+  background-size: 200% 100%;
+  animation: obs-shimmer 1.4s infinite linear;
+}
+
+.obs-skeleton-bar.is-lg {
+  height: 36px;
+  width: 56%;
+}
+
+.obs-skeleton-bar.is-md {
+  height: 18px;
+  width: 78%;
+}
+
+.obs-skeleton-box {
+  height: 220px;
+  width: 100%;
+}
+
+@keyframes obs-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

@@ -824,13 +824,14 @@ function estimateTrend(rows: InternalRow[]): {
 }
 
 export async function buildStaticDashboard(
-  forceRefresh = false
+  forceRefresh = false,
+  onHydroReady?: (partial: DashboardResponse) => void
 ): Promise<DashboardResponse> {
-  const [histRows, fewsRes, subzonas, weatherRes, alertConfig] = await Promise.all([
+  const weatherPromise = loadWeather(forceRefresh);
+  const [histRows, fewsRes, subzonas, alertConfig] = await Promise.all([
     loadHistoricalRows(forceRefresh),
     loadFewsRows(forceRefresh),
     loadSubzonas(),
-    loadWeather(forceRefresh),
     loadAlertConfig(),
   ]);
 
@@ -893,21 +894,6 @@ export async function buildStaticDashboard(
   const alertState = evaluateAlertState(nivelCm, thresholds);
   const trend = estimateTrend(combined);
 
-  let forecast: ForecastHour[] | null = null;
-  let forecastError: string | null = null;
-  if (weatherRes.weather && !weatherRes.error) {
-    const resForecast = await loadBasinForecast(
-      weatherRes.weather.time,
-      subzonas,
-      forceRefresh
-    );
-    forecast = resForecast.hours;
-    forecastError = resForecast.error;
-  } else {
-    forecastError =
-      weatherRes.error || "No hay datos meteorológicos actuales disponibles.";
-  }
-
   const records: RawRecord[] = combined.map((r) => ({
     f: r.fecha.iso,
     n: r.nivelCm,
@@ -917,7 +903,7 @@ export async function buildStaticDashboard(
 
   const fewsRows = fewsRes.rows;
 
-  return {
+  const basePayload: DashboardResponse = {
     records,
     fewsCount: fewsRows ? fewsRows.length : 0,
     fewsRange:
@@ -944,10 +930,10 @@ export async function buildStaticDashboard(
     thresholds,
     alertState,
     trend,
-    weather: weatherRes.weather,
-    weatherError: weatherRes.error,
-    forecast,
-    forecastError,
+    weather: null,
+    weatherError: null,
+    forecast: null,
+    forecastError: null,
     subzonesCount: subzonas.length,
     totalAreaKm2,
     config: {
@@ -962,5 +948,31 @@ export async function buildStaticDashboard(
       fewsVisorUrl: FEWS_VISOR_URL,
       appUrl: APP_URL,
     },
+  };
+
+  onHydroReady?.(basePayload);
+
+  const weatherRes = await weatherPromise;
+  let forecast: ForecastHour[] | null = null;
+  let forecastError: string | null = null;
+  if (weatherRes.weather && !weatherRes.error) {
+    const resForecast = await loadBasinForecast(
+      weatherRes.weather.time,
+      subzonas,
+      forceRefresh
+    );
+    forecast = resForecast.hours;
+    forecastError = resForecast.error;
+  } else {
+    forecastError =
+      weatherRes.error || "No hay datos meteorológicos actuales disponibles.";
+  }
+
+  return {
+    ...basePayload,
+    weather: weatherRes.weather,
+    weatherError: weatherRes.error,
+    forecast,
+    forecastError,
   };
 }
