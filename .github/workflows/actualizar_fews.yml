@@ -2,7 +2,7 @@ name: Actualizar datos FEWS IDEAM
 
 on:
   schedule:
-    - cron: "7,22,37,52 * * * *"  # cada 15 min fuera de picos :00/:15/:30/:45 para evitar omisiones de GitHub
+    - cron: "23,53 * * * *"  # cada 30 min fuera de picos :00/:15/:30/:45 para evitar omisiones de GitHub
   workflow_dispatch:
 
 permissions:
@@ -18,15 +18,15 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Descargar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Instalar Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
 
       - name: Instalar Python 3.11 y dependencias push
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip

@@ -2,7 +2,7 @@ name: Actualizar datos nivel río Calamar
 
 on:
   schedule:
-    - cron: "15 0,12,17 * * *"  # diario a las 7:15, 12:15 y 19:15 en Colombia
+    - cron: "37 2,14,20 * * *"  # diario a las 21:37, 09:37 y 15:37 en Colombia (tras publicación IDEAM)
   workflow_dispatch:          # ejecución manual desde la pestaña Actions
 
 permissions:
@@ -18,16 +18,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Descargar repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Instalar Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
 
       - name: Instalar Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
 
@@ -74,6 +74,7 @@ jobs:
               fi
             fi
             git commit -m "Actualización automática nivel Calamar $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git pull --rebase --autostash origin main || true
             git push
           else
             echo "Datos y versión IDEAM sin cambios; no se hace commit."
