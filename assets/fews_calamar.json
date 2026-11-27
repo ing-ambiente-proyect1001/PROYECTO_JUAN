@@ -1,26 +1,20 @@
 {
-  "updatedAt": "2026-11-27T02:17:02.592Z",
+  "updatedAt": "2026-11-27T20:02:11.387Z",
   "station": "29037020",
   "resumenLectura": {
-    "fechaHora": "2026-11-26T06:00:00",
+    "fechaHora": "2026-11-27T06:00:00",
     "nivelCm": 451,
     "nivelMetros": 4.51,
-    "nivelPrevioCm": 450,
-    "deltaCm": 1,
-    "variacion24hCm": 2,
-    "flecha": "▲",
-    "tendencia": "sube",
-    "cambioTexto": "Subió 1 cm vs. lectura anterior",
+    "nivelPrevioCm": 451,
+    "deltaCm": 0,
+    "variacion24hCm": 0,
+    "flecha": "▬",
+    "tendencia": "sin_cambio",
+    "cambioTexto": "Sin cambio",
     "calculadoPor": "scripts/update-fews.mjs",
-    "calculadoEn": "2026-11-27T02:17:02.592Z"
+    "calculadoEn": "2026-11-27T20:02:11.387Z"
   },
   "records": [
-    {
-      "f": "2026-10-27T18:00:00",
-      "n": 523,
-      "u": "2026-10-27T18:00:00",
-      "s": 1
-    },
     {
       "f": "2026-10-28T06:00:00",
       "n": 525,
@@ -373,6 +367,18 @@
       "f": "2026-11-26T06:00:00",
       "n": 451,
       "u": "2026-11-26T06:00:00",
+      "s": 1
+    },
+    {
+      "f": "2026-11-26T18:00:00",
+      "n": 451,
+      "u": "2026-11-26T18:00:00",
+      "s": 1
+    },
+    {
+      "f": "2026-11-27T06:00:00",
+      "n": 451,
+      "u": "2026-11-27T06:00:00",
       "s": 1
     }
   ]
