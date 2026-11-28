@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-27T20:02:11.387Z",
+  "updatedAt": "2026-11-28T02:46:23.747Z",
   "station": "29037020",
   "resumenLectura": {
     "fechaHora": "2026-11-27T06:00:00",
@@ -12,15 +12,9 @@
     "tendencia": "sin_cambio",
     "cambioTexto": "Sin cambio",
     "calculadoPor": "scripts/update-fews.mjs",
-    "calculadoEn": "2026-11-27T20:02:11.387Z"
+    "calculadoEn": "2026-11-28T02:46:23.746Z"
   },
   "records": [
-    {
-      "f": "2026-10-28T06:00:00",
-      "n": 525,
-      "u": "2026-10-28T06:00:00",
-      "s": 1
-    },
     {
       "f": "2026-10-28T18:00:00",
       "n": 525,
